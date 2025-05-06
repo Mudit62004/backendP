@@ -20,8 +20,8 @@ const publishVideo = asyncHandler(async (req , res) =>{
     const {title, description}= req.body // jwt to check if the user is logged in
     console.log(title)
 
-    if (!(title, description)) {
-        throw new ApiError(400, "title and description for a video is req")
+    if (!title) {
+        throw new ApiError(400, "titlefor a video is required")
     }
 
     //get video thumbnail
@@ -146,6 +146,91 @@ const getAllVideos = asyncHandler(async(req , res) => {
     .json(new ApiResponse(200, videos, "Videos fetched successfully"))
 })
 
+const getVideoById = asyncHandler(async(req , res)=> {
+    try {
+        const { videoId } = req.params
+        if (!videoId) {
+            throw new ApiError(400, "videoId cant be fetched to get videoId")
+        }
+        
+        const video = await Video.findById(videoId)
+        if (!video) {
+            throw new ApiError(400, "Video can't be found for get video")
+        }
+
+        return res
+        .status(200)
+        .json(new ApiResponse(200, video, "video fetched successfully"))
+
+    } catch (error) {
+        throw new ApiError(400, `Internal Error ${error}`)
+    }
+})
+
+const updateVideoDetails = asyncHandler(async(req , res)=> {
+    const { videoId } = req.params
+    if (!videoId) {
+        throw new ApiError(400, "VideoId not fetched for update details")
+    }
+
+    //only owner can update the video details
+
+    const video = await Video.findById(videoId)
+    if (!video) {
+        throw new ApiError(400, "video not found")
+    }
+
+    const user = await User.findOne({
+        refreshToken: req.cookies.refreshToken
+    })
+
+    if (!user) {
+        throw new ApiError(400, "User not found for update details")
+    }
+
+    if (!video.owner.equals(user._id.toString())) {
+        throw new ApiError(403, "Only the owner can update video details")
+    }
+
+
+    //update title and description
+
+    const {title, description} = req.body
+    if (!title) {
+        throw new ApiError(400, "Title is required")
+    }
+
+    if (!description) {
+        throw new ApiError(400, "Description is required")
+    }
+
+    video.title = title
+    video.description = description
+
+    //update thumbnail
+
+
+    const newThumbnailLocalPathFile = req.file?.path
+    if (!newThumbnailLocalPathFile) {
+        throw new ApiError(400, "Update Thumbnail local file not uploded")
+    }
+
+    const thumbnail = await uploadOnCloundinary(newThumbnailLocalPathFile)
+    if (!thumbnail) {
+        throw new ApiError(400, "failed to upload thumbnail on cloudinary")
+    }
+    video.thumbnail = thumbnail.url
+
+    //Save the change
+    await video.save()
+
+    // Return the response
+    return res
+    .status(200)
+    .json(new ApiResponse(200, video, "Video details update successfully"))
+
+})
+
 const deleteVideo = asyncHandler(async(req , res)=> {
     const { videoId } = req.params
     
@@ -187,6 +272,8 @@ const togglePublishStatus = asyncHandler(async(req, res)=>{
     if (!video) {
         throw new ApiError(404, "Video not found")
     }
+
+
     video.isPublished = !video.isPublished
 
     await video.save({ validateBeforeSave: false})
@@ -199,7 +286,8 @@ const togglePublishStatus = asyncHandler(async(req, res)=>{
 export{
     publishVideo,
     getAllVideos,
+    getVideoById,
+    updateVideoDetails,
     deleteVideo,
-    togglePublishStatus
-
+    togglePublishStatus,
 }
