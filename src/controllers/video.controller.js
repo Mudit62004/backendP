@@ -48,11 +48,10 @@ const publishVideo = asyncHandler(async (req , res) =>{
         throw new ApiError(400, "thumbnail not uploaded on cloudinary")
     }
 
-    //getting the user
+    //getting the user and store on mongo
     const user = User.findById(req.user?._id)
 
-    //store data on mongo
-    const video = await VideoColorSpace.create({
+    const video = await Video.create({
         videoFile: videoFile.secure_url,
         thumbnail: thumbnail.url,
         owner: user._id,

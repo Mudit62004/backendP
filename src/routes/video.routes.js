@@ -1,6 +1,6 @@
 import { Router } from "express";
 import {upload} from "../middlewares/multer.middleware.js"
-import { verifyJWT } from "jsonwebtoken";
+import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { deleteVideo, getAllVideos, publishVideo, togglePublishStatus, updateVideoDetails } from "../controllers/video.controller.js";
 
 
